@@ -1,0 +1,9 @@
+public class SpaSingleLineDeleteServiceQueue implements Queueable, Database.AllowsCallouts {
+    public Map<Id,SPA_Line__c> spaSingleLineRecordMap;
+    public SpaSingleLineDeleteServiceQueue(Map<Id,SPA_Line__c> spaSingleLineRecordMap){
+        this.spaSingleLineRecordMap = spaSingleLineRecordMap;
+    }
+    public void execute(QueueableContext context) {
+       SPACPQIntegration.sendSPASingleLineRecordDeleteToCPQ(spaSingleLineRecordMap);
+    }
+}
