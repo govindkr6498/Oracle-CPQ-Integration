@@ -1,0 +1,19 @@
+public class SPASingleLineCPQWrapper {
+    public SPASingleLineDocument documents;
+    public class SPASingleLineDocument {
+        public Object[] items;
+    }
+    public class Item {
+        public String SPA;
+        public Integer Sequence;
+        public String FamilyCode;
+        public string Description;
+        Public Decimal StandardEndUserDisc;
+        Public Decimal StandardDealerDisc;
+        Public Decimal ProgramEndUserDisc;
+        Public Decimal ProgramDealerDisc;
+    }
+    public static SPASingleLineCPQWrapper parse(String json){
+        return (SPASingleLineCPQWrapper) System.JSON.deserialize(json, SPASingleLineCPQWrapper.class);
+    }
+}
