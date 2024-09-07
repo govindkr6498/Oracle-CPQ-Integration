@@ -1,0 +1,10 @@
+public class SpaHeaderUpdateServiceQueue implements Queueable, Database.AllowsCallouts {
+	public Set<Id> spaHeaderRecordIds;
+    
+    public SpaHeaderUpdateServiceQueue(Set<Id> spaHeaderRecordIds){
+        this.spaHeaderRecordIds = spaHeaderRecordIds;
+    }
+    public void execute(QueueableContext context) {
+		SPACPQIntegration.sendSPAHeaderRecordUpdateToCPQ(spaHeaderRecordIds);
+    }
+}
