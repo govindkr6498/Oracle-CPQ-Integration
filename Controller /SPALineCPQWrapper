@@ -1,0 +1,20 @@
+public class SPALineCPQWrapper {
+    public SPALineDocument documents;
+    public class SPALineDocument {
+        public Object[] items;
+    }
+    public class Item {
+        public String SPA;
+        public Integer Sequence;
+        public String FamilyCode1;
+        Public Decimal StartRange;
+        Public Decimal EndRange;
+        Public Decimal StandardEndUserDisc;
+        Public Decimal StandardDealerDisc;
+        Public Decimal ProgramEndUserDisc;
+        Public Decimal ProgramDealerDisc;
+    }
+    public static SPALineCPQWrapper parse(String json){
+        return (SPALineCPQWrapper) System.JSON.deserialize(json, SPALineCPQWrapper.class);
+    }
+}
