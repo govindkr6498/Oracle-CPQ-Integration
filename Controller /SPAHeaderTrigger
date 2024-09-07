@@ -1,0 +1,11 @@
+trigger SPAHeaderTrigger on SPA_Header__c (after update, after insert, before insert, before update) {
+    switch on Trigger.operationType {
+        when AFTER_INSERT {
+            SPACPQIntegration.sendSPAHeaderToCPQOnInsert(Trigger.NewMap.keySet());
+        } when BEFORE_UPDATE {
+            SPAHeaderTriggerHelper.setCurrencyCode(trigger.new, trigger.oldMap);
+        }when AFTER_UPDATE {
+            SPACPQIntegration.sendSPAHeaderToCPQOnUpdate(Trigger.NewMap.keySet());
+        }
+    }
+}
