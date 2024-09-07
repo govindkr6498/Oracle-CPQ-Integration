@@ -1,0 +1,9 @@
+public class SpaLineUpdateServiceQueue implements Queueable, Database.AllowsCallouts {
+    public Set<Id> spaLineRecordIds;
+    public SpaLineUpdateServiceQueue(Set<Id> spaLineRecordIds){
+        this.spaLineRecordIds = spaLineRecordIds;
+    }
+    public void execute(QueueableContext context) {
+		SPACPQIntegration.sendSPALineRecordUpdateToCPQ(spaLineRecordIds);
+    }
+}
