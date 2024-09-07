@@ -1,0 +1,9 @@
+public class SpaLineDeleteServiceQueue implements Queueable, Database.AllowsCallouts {
+    public Map<Id,SPA_Line__c> spaLineTieredIdRecordMap;
+    public SpaLineDeleteServiceQueue(Map<Id,SPA_Line__c> spaLineTieredIdRecordMap){
+        this.spaLineTieredIdRecordMap = spaLineTieredIdRecordMap;
+    }
+    public void execute(QueueableContext context) {
+		SPACPQIntegration.sendSPALineRecordDeleteToCPQ(spaLineTieredIdRecordMap);
+    }
+}
