@@ -1,0 +1,11 @@
+trigger SpaLineTrigger on SPA_Line__c (after insert,after update,Before delete) {
+    if(Trigger.isInsert && Trigger.IsAfter){
+        SpaLineTriggerHandler.afterInsert(Trigger.NewMap);
+    }
+    if(Trigger.isUpdate && Trigger.IsAfter){
+        SpaLineTriggerHandler.afterUpdate(Trigger.NewMap);        
+    }
+    if(Trigger.isDelete && Trigger.IsBefore){
+        SpaLineTriggerHandler.beforeDelete(Trigger.OldMap);
+    }
+}
