@@ -1,0 +1,572 @@
+public class SPACPQIntegration {
+    
+    //SPAHeader - Insert
+    public static void sendSPAHeaderToCPQOnInsert(Set<Id> spaHeaderIds){
+        System.enqueueJob(new SpaHeaderServiceQueue(spaHeaderIds));
+    }
+    
+    //SPAHeader - Update
+    public static void sendSPAHeaderToCPQOnUpdate(Set<Id> spaHeaderIds){
+        System.enqueueJob(new SpaHeaderUpdateServiceQueue(spaHeaderIds));
+    }
+    
+    //SPALine-Tired Insert
+    public static void sendSPALineToCPQOnInsert(Set<Id> spaLineIds){
+        System.enqueueJob(new SpaLineServiceQueue(spaLineIds));
+    }
+    
+    //SPALine-Tired Update
+    public static void sendSPALineToCPQOnUpdate(Set<Id> spaLineIds){
+        System.enqueueJob(new SpaLineUpdateServiceQueue(spaLineIds));
+    }
+    
+    //SPALine-Tired Delete
+    public static void sendSPALineToCPQOnDelete(Map<Id,SPA_Line__c> spaLineTieredIdRecordMap){
+        System.enqueueJob(new SpaLineDeleteServiceQueue(spaLineTieredIdRecordMap));
+    }
+    
+    //SPALine - Single Insert
+    public static void sendSPASingleLineToCPQOnInsert(Set<Id> spaLineIds){
+        System.enqueueJob(new SpaSingleLineServiceQueue(spaLineIds));
+    }
+    
+    //SPALine - Single Update
+    public static void sendSPASingleLineToCPQOnUpdate(Set<Id> spaLineIds){
+        System.enqueueJob(new SpaSingleLineUpdateServiceQueue(spaLineIds));
+    }
+    
+    //SPALine - Single Delete
+    public static void sendSPASingleLineToCPQOnDelete(Map<Id,SPA_Line__c> spaSingleLineRecordMap){
+        System.enqueueJob(new SpaSingleLineDeleteServiceQueue(spaSingleLineRecordMap));
+    }
+    
+    //Multiple Accounts Insert
+    public static void sendSPAMultiAccsToCPQOnInsert(List<SPA_Account_Junction__c> spaAccJunctionList){
+        System.enqueueJob(new SpaMultiAccountServiceQueue(spaAccJunctionList));
+    }
+    
+    //Multiple Accounts Update
+    public static void sendSPAMultiAccsToCPQOnUpdate(Set<Id> spaLineIds){
+        System.enqueueJob(new SpaSingleLineUpdateServiceQueue(spaLineIds));
+    }
+    
+    //Multiple Accounts Delete
+    public static void sendSPAMultiAccsToCPQOnDelete(Map<Id,SPA_Line__c> spaSingleLineRecordMap){
+        System.enqueueJob(new SpaSingleLineDeleteServiceQueue(spaSingleLineRecordMap));
+    }
+    
+    
+    
+    //SPAHeader Insert from Queuable
+    public static String sendSPAHeaderRecordToCPQ(Set<Id> spaHeaderRecordIds){
+        
+        List<SPA_Header__c> spaHeaderRecordList = [SELECT Id, OwnerId, IsDeleted, Name, CurrencyIsoCode, CreatedDate, CreatedById, LastModifiedDate, LastModifiedById, SystemModstamp, LastActivityDate, LastViewedDate, LastReferencedDate, Project_Name__c, Tiered_Lines_Count__c, Account__c,Account__r.Name, Opportunity__c, Program_Type__c, Discount_Type__c, Contract_Number__c, Primary_Sales_Person__c, Tiered_Family_Count__c, Tiered_Discount_Group_Count__c, Freight_On_Board__c, End_Customer__c, Invoice_Destination__c, Order_Type__c, Contract_Type__c, Price_Zone__c, Effective_Start_Date__c, Effective_End_Date__c, Currency__c, Payment_Terms__c, Account_Number__c, Multiple_Account_count__c, Comments__c, Parent_SPA_Header__c, Dealer_Services_Fee__c, Family_Count__c, SPIFF_Eligible__c, SPIFF_To_Dealer__c, Split_SPIFF__c, Dealer_Contact_1__c, Dealer_Contact_2__c, Dealer_Contact_3__c, Other_Contact_1__c, Other_Contact_2__c, Rep_Group__c, Rep_Group_Employee__c, Bonus_Eligible__c, Administration_Fee__c, Dealer_Service_Fee_Override__c, Administration_Fee_Override__c, Opportunity_Record_Type__c, Target_System__c 
+                                                   FROM SPA_Header__c 
+                                                   WHERE Id in :spaHeaderRecordIds];
+        Map<String,Id> spaHeaderBySPANameMap = new Map<String,Id>();
+        SPAHeaderCPQWrapper spaHeaderCPQRequestWrapper = new SPAHeaderCPQWrapper();
+        
+        SPAHeaderCPQWrapper.SPAHeaderDocument spaHeaderDocument = new SPAHeaderCPQWrapper.SPAHeaderDocument();
+        
+        List<Object> itemsList = new List<Object>();
+        
+        
+        for(SPA_Header__c spaHeaderRecord : spaHeaderRecordList){
+            spaHeaderBySPANameMap.put(spaHeaderRecord.Name,spaHeaderRecord.Id);
+            
+            SPAHeaderCPQWrapper.Item tempItem = new SPAHeaderCPQWrapper.Item();
+            
+            tempItem.SPA = spaHeaderRecord.Name;
+            tempItem.Sequence = 0;
+            tempItem.SPA_Name = spaHeaderRecord.Name +'-'+tempItem.Sequence+' '+spaHeaderRecord.Project_Name__c;
+            tempItem.DealerID = spaHeaderRecord.Account_Number__c;
+            tempItem.DealerName = spaHeaderRecord.Account__r.Name; 
+            tempItem.UserID = spaHeaderRecord.Account_Number__c;
+            tempItem.UserName = spaHeaderRecord.Account__r.Name;
+            tempItem.Terms = spaHeaderRecord.Payment_Terms__c; 
+            tempItem.FreightTerms =  'Prepaid'; // Payment_Terms__c
+            tempItem.Ename = spaHeaderRecord.Name +'-'+tempItem.Sequence+' '+spaHeaderRecord.Project_Name__c;
+            tempItem.FOB = spaHeaderRecord.Freight_On_Board__c.toUpperCase();
+            tempItem.CurrencyCode = spaHeaderRecord.Currency__c == 'CAD'?'CND':'USD';
+            tempItem.DiscountType = spaHeaderRecord.Discount_Type__c;
+            tempItem.InvoiceDestination = spaHeaderRecord.Invoice_Destination__c; 
+            tempItem.Contract = spaHeaderRecord.Contract_Number__c;
+            tempItem.AgreementType = '';
+            tempItem.OrderType = spaHeaderRecord.Order_Type__c;
+            tempItem.ContractType = spaHeaderRecord.Contract_Type__c;            
+            tempItem.RequestedDate = String.valueOf(spaHeaderRecord.CreatedDate);
+            tempItem.ApprovalDate = String.valueOf(spaHeaderRecord.CreatedDate);
+            tempItem.EffectiveDate = String.valueOf(spaHeaderRecord.Effective_Start_Date__c);
+            tempItem.ExpirationDate = String.valueOf(spaHeaderRecord.Effective_End_Date__c);
+            tempItem.PriceZone = spaHeaderRecord.Price_Zone__c;
+            tempItem.ProjectStatus = '';
+            tempItem.ProjectOutcome = '';
+            tempItem.LessisMoreOnly = spaHeaderRecord.Program_Type__c == 'Less Is More' ? 'Y':'N';
+            tempItem.OtherConditions = '';
+            tempItem.Overage = Integer.valueOf(spaHeaderRecord.Dealer_Services_Fee__c) > 0 ?'Y':'N';
+            // tempItem.OverageType = ''; // OverageType Field is not present in SPA Header Object
+            tempItem.OveragePercent = spaHeaderRecord.Dealer_Service_Fee_Override__c > 0 ?Integer.valueOf(spaHeaderRecord.Dealer_Service_Fee_Override__c):Integer.valueOf(spaHeaderRecord.Dealer_Services_Fee__c);
+            
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem));
+            tempObject.put('_sync_action',(String)'create');
+            
+            itemsList.add(tempObject);
+        }
+        
+        spaHeaderDocument.items = itemsList;
+        spaHeaderCPQRequestWrapper.documents = spaHeaderDocument;
+        System.debug(JSON.serialize(spaHeaderCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomSPA/actions/synchronize','POST',JSON.serialize(spaHeaderCPQRequestWrapper));
+        System.debug('resp : '+resp.getBody());
+        if(resp != NULL){
+            if(resp.getStatusCode() == 200){
+                List<SPA_Header__c> updateSpaHeaderRecordList = New List<SPA_Header__c>();
+                String jsonString = resp.getBody();
+                Map<String, Object> parsedJson = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
+                Map<String, Object> documents = (Map<String, Object>) parsedJson.get('documents');
+                List<Object> items = (List<Object>) documents.get('items');
+                Integer index = 0;
+                for(String str : spaHeaderBySPANameMap.keySet()){
+                    Map<String, Object> spaHeaderCPQId = (Map<String, Object>) items[index];
+                    SPA_Header__c spaHeader = New SPA_Header__c();
+                    spaHeader.Id = spaHeaderBySPANameMap.get(str);
+                    if(resp.getStatusCode() == 200){
+                        spaHeader.CPQ_ID__c = String.Valueof(spaHeaderCPQId.get('id'));
+                        spaHeader.Integration_Status__c = 'Success';
+                        spaHeader.Integration_Description__c = '';
+                    }else{
+                        spaHeader.CPQ_ID__c = '';
+                        spaHeader.Integration_Status__c = 'Error';
+                        spaHeader.Integration_Description__c = String.valueOf(parsedJson);
+                    }
+                    updateSpaHeaderRecordList.add(spaHeader);
+                    index += 1;
+                }
+                if(!updateSpaHeaderRecordList.IsEmpty()){
+                    update updateSpaHeaderRecordList;
+                }
+            }           
+            System.debug('resp : '+resp.getBody());
+            return resp.getBody();
+        }
+        return null;
+    }
+    
+    //SPAHeader Update from Queuable
+    public static String sendSPAHeaderRecordUpdateToCPQ(Set<Id> spaHeaderRecordIds){
+        
+        List<SPA_Header__c> spaHeaderRecordList = [SELECT Id, OwnerId,CPQ_ID__c, IsDeleted, Name, CurrencyIsoCode, CreatedDate, CreatedById, LastModifiedDate, LastModifiedById, SystemModstamp, LastActivityDate, LastViewedDate, LastReferencedDate, Project_Name__c, Tiered_Lines_Count__c, Account__c,Account__r.Name, Opportunity__c, Program_Type__c, Discount_Type__c, Contract_Number__c, Primary_Sales_Person__c, Tiered_Family_Count__c, Tiered_Discount_Group_Count__c, Freight_On_Board__c, End_Customer__c, Invoice_Destination__c, Order_Type__c, Contract_Type__c, Price_Zone__c, Effective_Start_Date__c, Effective_End_Date__c, Currency__c, Payment_Terms__c, Account_Number__c, Multiple_Account_count__c, Comments__c, Parent_SPA_Header__c, Dealer_Services_Fee__c, Family_Count__c, SPIFF_Eligible__c, SPIFF_To_Dealer__c, Split_SPIFF__c, Dealer_Contact_1__c, Dealer_Contact_2__c, Dealer_Contact_3__c, Other_Contact_1__c, Other_Contact_2__c, Rep_Group__c, Rep_Group_Employee__c, Bonus_Eligible__c, Administration_Fee__c, Dealer_Service_Fee_Override__c, Administration_Fee_Override__c, Opportunity_Record_Type__c, Target_System__c 
+                                                   FROM SPA_Header__c 
+                                                   WHERE Id in :spaHeaderRecordIds];
+        Map<String,Id> spaHeaderBySPANameMap = new Map<String,Id>();
+        SPAHeaderCPQWrapper spaHeaderCPQRequestWrapper = new SPAHeaderCPQWrapper();
+        
+        SPAHeaderCPQWrapper.SPAHeaderDocument spaHeaderDocument = new SPAHeaderCPQWrapper.SPAHeaderDocument();
+        
+        List<Object> itemsList = new List<Object>();
+        
+        
+        for(SPA_Header__c spaHeaderRecord : spaHeaderRecordList){
+            spaHeaderBySPANameMap.put(spaHeaderRecord.Name,spaHeaderRecord.Id);
+            
+            SPAHeaderCPQWrapper.Item tempItem = new SPAHeaderCPQWrapper.Item();
+            
+            tempItem.SPA = spaHeaderRecord.Name;
+            tempItem.Sequence = 0;
+            tempItem.SPA_Name = spaHeaderRecord.Name +'-'+tempItem.Sequence+' '+spaHeaderRecord.Project_Name__c;
+            tempItem.DealerID = spaHeaderRecord.Account_Number__c;
+            tempItem.DealerName = spaHeaderRecord.Account__r.Name; 
+            tempItem.UserID = spaHeaderRecord.Account_Number__c;
+            tempItem.UserName = spaHeaderRecord.Account__r.Name;
+            tempItem.Terms = spaHeaderRecord.Payment_Terms__c; 
+            tempItem.FreightTerms =  'Prepaid'; // Payment_Terms__c
+            tempItem.Ename = spaHeaderRecord.Name +'-'+tempItem.Sequence+' '+spaHeaderRecord.Project_Name__c;
+            tempItem.FOB = spaHeaderRecord.Freight_On_Board__c.toUpperCase();
+            tempItem.CurrencyCode = spaHeaderRecord.Currency__c == 'CAD'?'CND':'USD';
+            tempItem.DiscountType = spaHeaderRecord.Discount_Type__c;
+            tempItem.InvoiceDestination = spaHeaderRecord.Invoice_Destination__c; 
+            tempItem.Contract = spaHeaderRecord.Contract_Number__c;
+            tempItem.AgreementType = '';
+            tempItem.OrderType = spaHeaderRecord.Order_Type__c;
+            tempItem.ContractType = spaHeaderRecord.Contract_Type__c;            
+            tempItem.RequestedDate = String.valueOf(spaHeaderRecord.CreatedDate);
+            tempItem.ApprovalDate = String.valueOf(spaHeaderRecord.CreatedDate);
+            tempItem.EffectiveDate = String.valueOf(spaHeaderRecord.Effective_Start_Date__c);
+            tempItem.ExpirationDate = String.valueOf(spaHeaderRecord.Effective_End_Date__c);
+            tempItem.PriceZone = spaHeaderRecord.Price_Zone__c;
+            tempItem.ProjectStatus = '';
+            tempItem.ProjectOutcome = '';
+            tempItem.LessisMoreOnly = spaHeaderRecord.Program_Type__c == 'Less Is More' ? 'Y':'N';
+            tempItem.OtherConditions = '';
+            tempItem.Overage = Integer.valueOf(spaHeaderRecord.Dealer_Services_Fee__c) > 0 ?'Y':'N';
+            // tempItem.OverageType = ''; // OverageType Field is not present in SPA Header Object
+            tempItem.OveragePercent = spaHeaderRecord.Dealer_Service_Fee_Override__c > 0 ?Integer.valueOf(spaHeaderRecord.Dealer_Service_Fee_Override__c):Integer.valueOf(spaHeaderRecord.Dealer_Services_Fee__c);
+            
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem));
+            tempObject.put('id',Integer.valueOf(spaHeaderRecord.CPQ_ID__c));
+            tempObject.put('_sync_action',(String)'update');
+            
+            itemsList.add(tempObject);
+        }
+        
+        spaHeaderDocument.items = itemsList;
+        spaHeaderCPQRequestWrapper.documents = spaHeaderDocument;
+        System.debug(JSON.serialize(spaHeaderCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomSPA/actions/synchronize','POST',JSON.serialize(spaHeaderCPQRequestWrapper));
+        System.debug('Status Code : '+resp.getStatusCode());
+        if(resp != NULL){
+            String jsonString = resp.getBody();
+            Map<String, Object> parsedJson = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
+            System.debug('resp.getBody : '+resp.getBody());            
+            return resp.getBody();
+        }
+        return null;
+    }
+    
+    
+    //SPALine-Tired Insert from Queuable
+    public static String sendSPALineRecordToCPQ(Set<Id> spaLineRecordIds){
+        SYstem.debug('spaLineRecordIds :'+spaLineRecordIds);
+        List<SPA_Line__c> spaLineRecordList = [SELECT Id,Name,CPQ_ID__c,SPA_Discount_Group_Range__r.SPA_Discount_Group__r.Name,Header_Discount_Type__c,SPA_Header__r.Name,Line_Code__c,SPA_Header__r.Program_Type__c,Dealer_Discount_Percentage__c,End_User_Discount_Percentage__c,Product_LineCode__c,Line_Description__c,SPA_Discount_Group_Range__c,SPA_Discount_Group_Range__r.Amount_Range_From__c,SPA_Discount_Group_Range__r.Amount_Range_To__c 
+                                               FROM SPA_Line__c WHERE Id IN: spaLineRecordIds];
+        
+        
+        Map<String,Id> spaLineBySPANameMap = new Map<String,Id>();
+        SPALineCPQWrapper spaLineCPQRequestWrapper = new SPALineCPQWrapper();
+        Map<String,Id> spaTieredLineBySPANameMap = new Map<String,Id>();
+        SPALineCPQWrapper.SPALineDocument spaLineDocument = new SPALineCPQWrapper.SPALineDocument();
+        
+        List<Object> itemsList = new List<Object>();
+        
+        for(SPA_Line__c spaLineRecord : spaLineRecordList){
+            spaTieredLineBySPANameMap.put(spaLineRecord.Name,spaLineRecord.Id);
+            List<String> spaDiscountGroupNameList = spaLineRecord.SPA_Discount_Group_Range__r.SPA_Discount_Group__r.Name.split('-');          
+            spaLineBySPANameMap.put(spaLineRecord.Name,spaLineRecord.Id);
+            
+            SPALineCPQWrapper.Item tempItem = new SPALineCPQWrapper.Item();          
+            tempItem.SPA = spaLineRecord.SPA_Header__r.Name;
+            tempItem.Sequence = 0;
+            tempItem.FamilyCode1 = spaLineRecord.Line_Code__c;
+            tempItem.StartRange = spaLineRecord.SPA_Discount_Group_Range__r.Amount_Range_From__c;
+            tempItem.EndRange = spaLineRecord.SPA_Discount_Group_Range__r.Amount_Range_To__c;
+            tempItem.StandardEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.StandardDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.Dealer_Discount_Percentage__c :0;
+            tempItem.ProgramEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.ProgramDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard' ?spaLineRecord.Dealer_Discount_Percentage__c : 0;         
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem));
+            tempObject.put('_sync_action',(String)'create');
+            tempObject.put('Group',spaDiscountGroupNameList[1]);
+            itemsList.add(tempObject);
+        }
+        
+        spaLineDocument.items = itemsList;
+        spaLineCPQRequestWrapper.documents = spaLineDocument;
+        System.debug(JSON.serialize(spaLineCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomTieredDiscounts/actions/synchronize','POST',JSON.serialize(spaLineCPQRequestWrapper));
+        String jsonString = resp.getBody();
+        if(resp != NULL){
+            if(resp.getStatusCode() == 200){
+                List<SPA_Line__c> updateSpaTieredLineRecordList = New List<SPA_Line__c>();
+                Map<String, Object> parsedJson = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
+                Map<String, Object> documents = (Map<String, Object>) parsedJson.get('documents');
+                List<Object> items = (List<Object>) documents.get('items');
+                Integer index = 0;
+                for(String str : spaLineRecordIds){
+                    Map<String, Object> spaHeaderCPQId = (Map<String, Object>) items[index];
+                    SPA_Line__c spaTieredLine = New SPA_Line__c();
+                    spaTieredLine.Id = str;
+                    if(resp.getStatusCode() == 200){
+                        spaTieredLine.CPQ_ID__c = String.Valueof(spaHeaderCPQId.get('id'));
+                    }else{
+                        spaTieredLine.CPQ_ID__c = '';
+                    }
+                    updateSpaTieredLineRecordList.add(spaTieredLine);
+                    index += 1;
+                }
+                if(!updateSpaTieredLineRecordList.IsEmpty()){
+                    update updateSpaTieredLineRecordList;
+                }
+            }           
+            System.debug('resp : '+resp.getBody());          
+            return resp.getBody();
+        }  
+        return null;
+    }
+    
+    //SPALine-Tired Update from Queuable
+    public static String sendSPALineRecordUpdateToCPQ(Set<Id> spaLineRecordIds){   
+        SYstem.debug('spaLineRecordIds :'+spaLineRecordIds);
+        List<SPA_Line__c> spaLineRecordList = [SELECT Id,Name,CPQ_ID__c,SPA_Discount_Group_Range__r.SPA_Discount_Group__r.Name,Header_Discount_Type__c,SPA_Header__r.Name,Line_Code__c,SPA_Header__r.Program_Type__c,Dealer_Discount_Percentage__c,End_User_Discount_Percentage__c,Product_LineCode__c,Line_Description__c,SPA_Discount_Group_Range__c,SPA_Discount_Group_Range__r.Amount_Range_From__c,SPA_Discount_Group_Range__r.Amount_Range_To__c  FROM SPA_Line__c WHERE Id IN: spaLineRecordIds];
+        Map<String,Id> spaLineBySPANameMap = new Map<String,Id>();
+        SPALineCPQWrapper spaLineCPQRequestWrapper = new SPALineCPQWrapper();
+        
+        SPALineCPQWrapper.SPALineDocument spaLineDocument = new SPALineCPQWrapper.SPALineDocument();
+        
+        List<Object> itemsList = new List<Object>();
+        
+        for(SPA_Line__c spaLineRecord : spaLineRecordList){
+            System.debug('Start Range :'+spaLineRecord.SPA_Discount_Group_Range__r.Amount_Range_From__c+' End Range '+spaLineRecord.SPA_Discount_Group_Range__r.Amount_Range_To__c);
+            List<String> spaDiscountGroupNameList = spaLineRecord.SPA_Discount_Group_Range__r.SPA_Discount_Group__r.Name.split('-');
+            System.debug('Spa Discount Group : '+spaLineRecord.SPA_Discount_Group_Range__r.SPA_Discount_Group__r.Name+'  spaDiscountGroupNameList '+spaDiscountGroupNameList[1]);
+            spaLineBySPANameMap.put(spaLineRecord.Name,spaLineRecord.Id);
+            
+            SPALineCPQWrapper.Item tempItem = new SPALineCPQWrapper.Item();          
+            tempItem.SPA = spaLineRecord.SPA_Header__r.Name;
+            tempItem.Sequence = 0;
+            tempItem.FamilyCode1 = spaLineRecord.Line_Code__c;
+            tempItem.StartRange = spaLineRecord.SPA_Discount_Group_Range__r.Amount_Range_From__c;
+            tempItem.EndRange = spaLineRecord.SPA_Discount_Group_Range__r.Amount_Range_To__c;
+            tempItem.StandardEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.StandardDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.Dealer_Discount_Percentage__c :0;
+            tempItem.ProgramEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.ProgramDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard' ?spaLineRecord.Dealer_Discount_Percentage__c : 0;         
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem));
+            tempObject.put('id',Integer.valueOf(spaLineRecord.CPQ_ID__c));
+            tempObject.put('_sync_action',(String)'update');         
+            tempObject.put('Group',spaDiscountGroupNameList[1]);
+            itemsList.add(tempObject);
+        }
+        
+        spaLineDocument.items = itemsList;
+        spaLineCPQRequestWrapper.documents = spaLineDocument;
+        System.debug('spaLineCPQRequestWrapper : '+JSON.serialize(spaLineCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomTieredDiscounts/actions/synchronize','POST',JSON.serialize(spaLineCPQRequestWrapper));
+        if(resp != NULL){
+            System.debug('POST Method : '+resp.getBody());            
+            return resp.getBody();
+        }  
+        return null;
+    }
+    
+    //SPALine-Tired Delete from Queuable
+    public static String sendSPALineRecordDeleteToCPQ(Map<Id,SPA_Line__c> spaLineTieredIdRecordMap){ 
+        System.debug('spaLineRecordIds : '+spaLineTieredIdRecordMap);
+        List<SPA_Line__c> spaLineRecordList = New List<SPA_Line__c>();
+        for(Id spaLineRecord : spaLineTieredIdRecordMap.keySet()){
+            spaLineRecordList.add(spaLineTieredIdRecordMap.get(spaLineRecord));
+        }
+        SPALineCPQWrapper spaLineCPQRequestWrapper = new SPALineCPQWrapper();        
+        SPALineCPQWrapper.SPALineDocument spaLineDocument = new SPALineCPQWrapper.SPALineDocument();        
+        List<Object> itemsList = new List<Object>();        
+        for(SPA_Line__c spaLineRecord : spaLineRecordList){
+            SPALineCPQWrapper.Item tempItem = new SPALineCPQWrapper.Item();                 
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem)); 
+            tempObject.put('_sync_action',(String)'delete');
+            tempObject.put('id',Integer.valueOf(spaLineRecord.CPQ_ID__c));
+            itemsList.add(tempObject);
+        }       
+        spaLineDocument.items = itemsList;
+        spaLineCPQRequestWrapper.documents = spaLineDocument;
+        System.debug(JSON.serialize(spaLineCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomTieredDiscounts/actions/synchronize','POST',JSON.serialize(spaLineCPQRequestWrapper));
+        if(resp != NULL){
+            System.debug('Tiered DELETE POST Method : '+resp.getBody());          
+            return resp.getBody();
+        }  
+        return null;
+    }
+    
+    //SPALine-Single Insert
+    public static String sendSPASingleLineRecordToCPQ(Set<Id> spaLineRecordIds){       
+        List<SPA_Line__c> spaLineRecordList = [SELECT Id,Name,CPQ_ID__c,Header_Discount_Type__c,SPA_Header__r.Name,Line_Code__c,SPA_Header__r.Program_Type__c,Dealer_Discount_Percentage__c,End_User_Discount_Percentage__c,Product_LineCode__c,Line_Description__c 
+                                               	FROM SPA_Line__c WHERE Id IN: spaLineRecordIds];
+        Map<String,Id> spaLineBySPANameMap = new Map<String,Id>();
+        SPASingleLineCPQWrapper spaLineCPQRequestWrapper = new SPASingleLineCPQWrapper();
+        
+        SPASingleLineCPQWrapper.SPASingleLineDocument spaLineDocument = new SPASingleLineCPQWrapper.SPASingleLineDocument();
+        
+        List<Object> itemsList = new List<Object>();
+        
+        for(SPA_Line__c spaLineRecord : spaLineRecordList){ 
+            spaLineBySPANameMap.put(spaLineRecord.Name,spaLineRecord.Id);
+            
+            SPASingleLineCPQWrapper.Item tempItem = new SPASingleLineCPQWrapper.Item();          
+            tempItem.SPA = spaLineRecord.SPA_Header__r.Name;
+            tempItem.Sequence = 0;
+            tempItem.FamilyCode = spaLineRecord.Line_Code__c;
+            tempItem.Description = spaLineRecord.Line_Description__c;
+            tempItem.StandardEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.StandardDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.Dealer_Discount_Percentage__c :0;
+            tempItem.ProgramEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.ProgramDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard' ?spaLineRecord.Dealer_Discount_Percentage__c : 0;         
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem));
+            tempObject.put('_sync_action',(String)'create');
+            tempObject.put('Group','0');
+            itemsList.add(tempObject);
+        }
+        
+        spaLineDocument.items = itemsList;
+        spaLineCPQRequestWrapper.documents = spaLineDocument;
+        System.debug('spaLineCPQRequestWrapper : '+JSON.serialize(spaLineCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomSingleDiscounts/actions/synchronize','POST',JSON.serialize(spaLineCPQRequestWrapper));
+        String jsonString = resp.getBody();
+        if(resp != NULL){
+             if(resp.getStatusCode() == 200){
+                List<SPA_Line__c> updateSpaSingleLineRecordList = New List<SPA_Line__c>();
+                Map<String, Object> parsedJson = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
+                Map<String, Object> documents = (Map<String, Object>) parsedJson.get('documents');
+                List<Object> items = (List<Object>) documents.get('items');
+                Integer index = 0;
+                for(Id str : spaLineRecordIds){
+                    Map<String, Object> spaHeaderCPQId = (Map<String, Object>) items[index];
+                    SPA_Line__c spaSingleLine = New SPA_Line__c();
+                    spaSingleLine.Id = str;
+                    if(resp.getStatusCode() == 200){
+                        spaSingleLine.CPQ_ID__c = String.Valueof(spaHeaderCPQId.get('id'));
+                    }else{
+                        spaSingleLine.CPQ_ID__c = '';
+                    }
+                    updateSpaSingleLineRecordList.add(spaSingleLine);
+                    index += 1;
+                }
+                if(!updateSpaSingleLineRecordList.IsEmpty()){
+                    update updateSpaSingleLineRecordList;
+                }
+            }           
+            System.debug('resp : '+resp.getBody());          
+            return resp.getBody();
+        }  
+        return null;
+    }
+    
+    //SPALine-Single Update
+    public static String sendSPASingleLineRecordUpdateToCPQ(Set<Id> spaLineRecordIds){       
+        List<SPA_Line__c> spaLineRecordList = [SELECT Id,CPQ_ID__c,Name,Header_Discount_Type__c,SPA_Header__r.Name,Line_Code__c,SPA_Header__r.Program_Type__c,Dealer_Discount_Percentage__c,End_User_Discount_Percentage__c,Product_LineCode__c,Line_Description__c  FROM SPA_Line__c WHERE Id IN: spaLineRecordIds];
+        Map<String,Id> spaLineBySPANameMap = new Map<String,Id>();
+        SPASingleLineCPQWrapper spaLineCPQRequestWrapper = new SPASingleLineCPQWrapper();
+        
+        SPASingleLineCPQWrapper.SPASingleLineDocument spaLineDocument = new SPASingleLineCPQWrapper.SPASingleLineDocument();
+        
+        List<Object> itemsList = new List<Object>();
+        
+        for(SPA_Line__c spaLineRecord : spaLineRecordList){ 
+            spaLineBySPANameMap.put(spaLineRecord.Name,spaLineRecord.Id);
+            
+            SPASingleLineCPQWrapper.Item tempItem = new SPASingleLineCPQWrapper.Item();          
+            tempItem.SPA = spaLineRecord.SPA_Header__r.Name;
+            tempItem.Sequence = 0;
+            tempItem.FamilyCode = spaLineRecord.Line_Code__c;
+            tempItem.Description = spaLineRecord.Line_Description__c;
+            tempItem.StandardEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.StandardDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.Dealer_Discount_Percentage__c :0;
+            tempItem.ProgramEndUserDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard'?spaLineRecord.End_User_Discount_Percentage__c :0;
+            tempItem.ProgramDealerDisc = spaLineRecord.SPA_Header__r.Program_Type__c == 'Standard' ?spaLineRecord.Dealer_Discount_Percentage__c : 0;         
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem));
+            tempObject.put('_sync_action',(String)'update');
+            tempObject.put('id',Integer.valueOf(spaLineRecord.CPQ_ID__c));
+            tempObject.put('Group','0');
+            itemsList.add(tempObject);
+        }
+        
+        spaLineDocument.items = itemsList;
+        spaLineCPQRequestWrapper.documents = spaLineDocument;
+        System.debug('spaLineCPQRequestWrapper : '+JSON.serialize(spaLineCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomSingleDiscounts/actions/synchronize','POST',JSON.serialize(spaLineCPQRequestWrapper));
+        if(resp != NULL){
+            System.debug('POST Method : '+resp.getBody());            
+            return resp.getBody();
+        }  
+        return null;
+    }
+    
+    //SPALine-Single delete
+    public static String sendSPASingleLineRecordDeleteToCPQ(Map<Id,SPA_Line__c> spaSingleLineRecordMap){ 
+        System.debug('spaSingleLineRecordMap : '+spaSingleLineRecordMap);
+        List<SPA_Line__c> spaSingleLineRecordList = New List<SPA_Line__c>();
+        for(Id spaLineRecord : spaSingleLineRecordMap.keySet()){
+            spaSingleLineRecordList.add(spaSingleLineRecordMap.get(spaLineRecord));
+        }
+        SPASingleLineCPQWrapper spaLineCPQRequestWrapper = new SPASingleLineCPQWrapper();
+        SPASingleLineCPQWrapper.SPASingleLineDocument spaLineDocument = new SPASingleLineCPQWrapper.SPASingleLineDocument();
+              
+        List<Object> itemsList = new List<Object>();        
+        for(SPA_Line__c spaLineRecord : spaSingleLineRecordList){
+            SPASingleLineCPQWrapper.Item tempItem = new SPASingleLineCPQWrapper.Item();                
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem)); 
+            tempObject.put('_sync_action',(String)'delete');
+            tempObject.put('id',Integer.valueOf(spaLineRecord.CPQ_ID__c));
+            itemsList.add(tempObject);
+        }             
+        spaLineDocument.items = itemsList;
+        spaLineCPQRequestWrapper.documents = spaLineDocument;
+        System.debug('spaLineCPQRequestWrapper : '+JSON.serialize(spaLineCPQRequestWrapper));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomSingleDiscounts/actions/synchronize','POST',JSON.serialize(spaLineCPQRequestWrapper));
+        if(resp != NULL){
+            System.debug('POST Method : '+resp.getBody());           
+            return resp.getBody();
+        }  
+        return null;
+    }
+    //Multiple Accounts Insert
+    public static String sendSPAMultiAccsCPQOnInsert(List<SPA_Account_Junction__c> spaAccJunctionList){       
+        SPAMultipleAccountsWrapper.MultipleAccounts multiAccWrapObj = new SPAMultipleAccountsWrapper.MultipleAccounts();      
+        
+        List<Object> itemsList = new List<Object>();
+        
+        for(SPA_Account_Junction__c eachAccJunRec : spaAccJunctionList){             
+            SPAMultipleAccountsWrapper.Item tempItem = new SPAMultipleAccountsWrapper.Item();        
+            tempItem.SPA = eachAccJunRec.Account__r.AccountNumber;
+            tempItem.Dealer_ID = eachAccJunRec.SPA_Header__r.Name;
+            Map<String,Object> tempObject = (Map<String,Object>) JSON.deserializeuntyped(JSON.serialize(tempItem));
+            tempObject.put('_sync_action',(String)'create'); 
+            itemsList.add(tempObject);
+        }
+        
+        multiAccWrapObj.items = itemsList;
+        System.debug('adminCustomMultpleDealerSPA Wrapper : '+JSON.serialize(multiAccWrapObj));
+        HttpResponse resp = sendHttpRequest('/rest/v16/adminCustomMultpleDealerSPA/actions/synchronize','POST',JSON.serialize(multiAccWrapObj));
+        String jsonString = resp.getBody();
+        if(resp != NULL){
+             if(resp.getStatusCode() == 200){
+                Map<String, Object> parsedJson = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
+                List<Object> items = (List<Object>) parsedJson.get('items');
+                Integer index = 0;
+                for(SPA_Account_Junction__c eachAccJunction : spaAccJunctionList){
+                    Map<String, Object> spaHeaderCPQId = (Map<String, Object>) items[index];
+                    if(resp.getStatusCode() == 200){
+                        eachAccJunction.CPQ_ID__c = String.Valueof(spaHeaderCPQId.get('id'));
+                    }else{
+                        eachAccJunction.CPQ_ID__c = '';
+                    }
+                    index += 1;
+                }
+                if(!spaAccJunctionList.IsEmpty()){
+                    update spaAccJunctionList;
+                }
+            }           
+            System.debug('resp : '+resp.getBody());          
+            return resp.getBody();
+        }  
+        return null;
+    }
+    
+    private static HttpResponse sendHttpRequest(String endPointSuffix, String methodType, String body){
+        
+        Oracle_CPQ_Authentication_Detail__c cpqAuthenticationDetails = Oracle_CPQ_Authentication_Detail__c.getValues('Default');        
+        String endpoint = cpqAuthenticationDetails.Endpoint__c+endPointSuffix;       
+        String username = cpqAuthenticationDetails.Username__c;
+        String password = cpqAuthenticationDetails.Password__c;
+        
+        String credentials = username + ':' + password;
+        String encodedCredentials = EncodingUtil.base64Encode(Blob.valueOf(credentials));
+        try{
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(endpoint);                    
+            req.setMethod(methodType); 
+            req.setHeader('Authorization', 'Basic ' + encodedCredentials);
+            if(body != Null){
+                req.setBody(body); 
+                req.setHeader('Content-Type','application/json');
+            }           
+            Http http = new Http();
+            HttpResponse response = http.send(req);
+            if(response.getStatusCode() != 200){
+                // ErrorLogHelper.logError(req, response);
+            }
+            return response;
+        }catch(Exception exceptionRecord){
+            System.debug('exceptionRecord : '+exceptionRecord);
+            return null;
+        }
+    }
+}
