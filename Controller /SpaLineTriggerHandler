@@ -1,0 +1,74 @@
+public class SpaLineTriggerHandler {
+    
+    public static void afterInsert(Map<Id,SPA_Line__c> newSPALineMap){
+        
+        Map<String,List<SPA_Line__c>> responseMap = getSPALineRecords(newSPALineMap.keySet());
+        
+        if(responseMap.containsKey('Tiered')){
+            SPACPQIntegration.sendSPALineToCPQOnInsert(new Map<Id,SPA_Line__c>(responseMap.get('Tiered')).keySet());
+        }else if(responseMap.containsKey('Single')){
+            SPACPQIntegration.sendSPASingleLineToCPQOnInsert(new Map<Id,SPA_Line__c>(responseMap.get('Single')).keySet());
+        }
+        
+    }
+    
+    public static void afterUpdate(Map<Id,SPA_Line__c> newSPALineMap){
+        Map<String,List<SPA_Line__c>> responseMap = getSPALineRecords(newSPALineMap.keySet());
+        
+        if(responseMap.containsKey('Tiered')){
+            SPACPQIntegration.sendSPALineToCPQOnUpdate(new Map<Id,SPA_Line__c>(responseMap.get('Tiered')).keySet());
+        }else if(responseMap.containsKey('Single')){
+            SPACPQIntegration.sendSPASingleLineToCPQOnUpdate(new Map<Id,SPA_Line__c>(responseMap.get('Single')).keySet());
+        }
+        
+        
+    }
+    
+    public static void beforeDelete(Map<Id,SPA_Line__c> oldSPALineMap){
+        
+		Map<String,List<SPA_Line__c>> responseMap = getSPALineRecords(oldSPALineMap.keySet());
+        
+        if(responseMap.containsKey('Tiered')){
+            SPACPQIntegration.sendSPALineToCPQOnDelete(new Map<Id,SPA_Line__c>(responseMap.get('Tiered')));
+            System.debug(' SPA Tiered Line trigger calling!...');
+        }else if(responseMap.containsKey('Single')){
+            SPACPQIntegration.sendSPASingleLineToCPQOnDelete(new Map<Id,SPA_Line__c>(responseMap.get('Single')));
+            System.debug(' SPA Single Line trigger calling!...');
+        }
+    }
+    
+    private static Map<String,List<SPA_Line__c>> getSPALineRecords(Set<Id> spaLineRecorIds){
+        
+        Map<String,List<SPA_Line__c>> responseMap = new Map<String,List<SPA_Line__c>>();
+        
+        List<SPA_Line__c> spaLineRecordList = [SELECT Id, SPA_Header__r.Discount_Type__c,CPQ_ID__c FROM SPA_Line__c WHERE Id IN: spaLineRecorIds];
+        
+        for(SPA_Line__c spaLineRecord : spaLineRecordList){
+            if(spaLineRecord.SPA_Header__r.Discount_Type__c == 'Tiered'){
+                if(responseMap.containsKey('Tiered')){
+                    List<SPA_Line__c> tempList = responseMap.get('Tiered');
+                    tempList.add(spaLineRecord);
+                    responseMap.put('Tiered',tempList);
+                }else{
+                    List<SPA_Line__c> tempList = new List<SPA_Line__c>();
+                    tempList.add(spaLineRecord);
+                    responseMap.put('Tiered',tempList);
+                }
+            }else if(spaLineRecord.SPA_Header__r.Discount_Type__c == 'Single'){
+                if(responseMap.containsKey('Single')){
+                    List<SPA_Line__c> tempList = responseMap.get('Single');
+                    tempList.add(spaLineRecord);
+                    responseMap.put('Single',tempList);
+                }else{
+                    List<SPA_Line__c> tempList = new List<SPA_Line__c>();
+                    tempList.add(spaLineRecord);
+                    responseMap.put('Single',tempList);
+                }
+            }
+            
+        }
+        
+        return responseMap;
+        
+    }
+}
