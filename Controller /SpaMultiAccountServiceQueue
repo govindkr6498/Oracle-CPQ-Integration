@@ -1,0 +1,9 @@
+public class SpaMultiAccountServiceQueue implements Queueable, Database.AllowsCallouts {
+    public List<SPA_Account_Junction__c> spaAccJunctionList;
+    public SpaMultiAccountServiceQueue(List<SPA_Account_Junction__c> spaAccJunctionList){
+        this.spaAccJunctionList = spaAccJunctionList;
+    }
+    public void execute(QueueableContext context) {
+		SPACPQIntegration.sendSPAMultiAccsCPQOnInsert(spaAccJunctionList);
+    }
+}
