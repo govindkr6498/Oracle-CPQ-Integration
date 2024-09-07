@@ -1,0 +1,9 @@
+public class SpaSingleLineServiceQueue implements Queueable, Database.AllowsCallouts {
+    public Set<Id> spaLineRecordIds;
+    public SpaSingleLineServiceQueue(Set<Id> spaLineRecordIds){
+        this.spaLineRecordIds = spaLineRecordIds;
+    }
+    public void execute(QueueableContext context) {
+        SPACPQIntegration.sendSPASingleLineRecordToCPQ(spaLineRecordIds);
+    }
+}
