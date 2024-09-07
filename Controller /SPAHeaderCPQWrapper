@@ -1,0 +1,41 @@
+public class SPAHeaderCPQWrapper{
+    public SPAHeaderDocument documents;
+    public class SPAHeaderDocument {
+        public Object[] items;
+    }
+    public class Item {
+        public String SPA;
+        public Integer Sequence;
+        public String SPA_Name;
+        public String DealerID;
+        public String DealerName;
+        public String UserID;
+        public String UserName;
+        public String Terms;
+        public String FreightTerms;
+        public String Ename;
+        public String FOB;
+        public String CurrencyCode;
+        public String DiscountType;
+        public String InvoiceDestination;
+        public String AgreementType;
+        public String OrderType;
+        public String Contract;
+        public String ContractType;
+        public String RequestedDate;
+        public String ApprovalDate;
+        public String EffectiveDate;
+        public String ExpirationDate;
+        public String PriceZone;
+        public String ProjectStatus;
+        public String ProjectOutcome;
+        public String LessisMoreOnly;
+        public String OtherConditions;
+        public String Overage;
+        public String OverageType;
+        public Integer OveragePercent;
+    }
+    public static SPAHeaderCPQWrapper parse(String json){
+        return (SPAHeaderCPQWrapper) System.JSON.deserialize(json, SPAHeaderCPQWrapper.class);
+    }
+}
